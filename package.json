@@ -9,7 +9,7 @@
     "build": "npx prisma generate && npx tsc -p tsconfig.build.json",
     "build:prod": "NODE_ENV=production npm run build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "npx nest start",
+    "start": "node dist/main",
     "start:dev": "npx nest start --watch",
     "start:debug": "npx nest start --debug --watch",
     "start:prod": "node dist/main",
