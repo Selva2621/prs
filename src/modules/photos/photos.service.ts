@@ -3,6 +3,7 @@ import { PrismaService } from '../../config/prisma.service';
 import { CreatePhotoDto } from './dto/create-photo.dto';
 import { UpdatePhotoDto } from './dto/update-photo.dto';
 import { PhotoCategory } from '@prisma/client';
+import { Express } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 

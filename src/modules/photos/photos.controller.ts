@@ -18,13 +18,14 @@ import { PhotosService } from './photos.service';
 import { CreatePhotoDto } from './dto/create-photo.dto';
 import { UpdatePhotoDto } from './dto/update-photo.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Express } from 'express';
 
 @ApiTags('Photos')
 @ApiBearerAuth()
 @Controller('photos')
 @UseGuards(JwtAuthGuard)
 export class PhotosController {
-  constructor(private readonly photosService: PhotosService) {}
+  constructor(private readonly photosService: PhotosService) { }
 
   @Post()
   @UseInterceptors(FileInterceptor('file'))
