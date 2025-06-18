@@ -3,10 +3,12 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 
 // Store original require for safe access
 const originalRequire = require;
+const path = require('path');
 
-// Safe require function with better error handling
+// Enhanced safe require function with better module resolution for serverless
 function safeRequire(id) {
   try {
+    // First try normal require
     return originalRequire(id);
   } catch (error) {
     // Handle optional dependencies that might not be available
@@ -16,7 +18,47 @@ function safeRequire(id) {
       console.warn(`Optional dependency ${id} not available, skipping...`);
       return null;
     }
+
+    // For @nestjs modules, try alternative resolution paths
+    if (id.startsWith('@nestjs/')) {
+      const alternativePaths = [
+        path.resolve(__dirname, 'node_modules', id),
+        path.resolve(__dirname, '..', '..', 'node_modules', id),
+        path.resolve(process.cwd(), 'node_modules', id),
+        path.resolve(process.cwd(), 'netlify', 'functions', 'node_modules', id)
+      ];
+
+      for (const altPath of alternativePaths) {
+        try {
+          console.log(`Trying alternative path for ${id}: ${altPath}`);
+          return originalRequire(altPath);
+        } catch (altError) {
+          console.log(`Alternative path failed: ${altPath} - ${altError.message}`);
+          continue;
+        }
+      }
+    }
+
     console.error(`Failed to require module '${id}':`, error.message);
+    console.error('Current working directory:', process.cwd());
+    console.error('__dirname:', __dirname);
+
+    // Try to provide more debugging information
+    try {
+      const fs = originalRequire('fs');
+      const nodeModulesPath = path.resolve(__dirname, 'node_modules');
+      if (fs.existsSync(nodeModulesPath)) {
+        console.error('Available packages in node_modules:', fs.readdirSync(nodeModulesPath).slice(0, 10));
+
+        const nestjsPath = path.resolve(nodeModulesPath, '@nestjs');
+        if (fs.existsSync(nestjsPath)) {
+          console.error('Available @nestjs packages:', fs.readdirSync(nestjsPath));
+        }
+      }
+    } catch (debugError) {
+      console.error('Could not provide debug information:', debugError.message);
+    }
+
     throw error;
   }
 }
@@ -133,14 +175,69 @@ async function createApp() {
 
     // Load NestJS modules inside the function to avoid early module resolution
     console.log('Loading NestJS modules...');
-    const { NestFactory } = safeRequire('@nestjs/core');
-    const { ValidationPipe } = safeRequire('@nestjs/common');
-    const { DocumentBuilder, SwaggerModule } = safeRequire('@nestjs/swagger');
-    console.log('NestJS modules loaded successfully');
+    console.log('Module resolution paths:', module.paths);
+
+    let NestFactory, ValidationPipe, DocumentBuilder, SwaggerModule;
+
+    try {
+      console.log('Loading @nestjs/core...');
+      const nestCore = safeRequire('@nestjs/core');
+      NestFactory = nestCore.NestFactory;
+      console.log('✅ @nestjs/core loaded successfully');
+    } catch (error) {
+      console.error('❌ Failed to load @nestjs/core:', error.message);
+      throw new Error(`Critical dependency @nestjs/core could not be loaded: ${error.message}`);
+    }
+
+    try {
+      console.log('Loading @nestjs/common...');
+      const nestCommon = safeRequire('@nestjs/common');
+      ValidationPipe = nestCommon.ValidationPipe;
+      console.log('✅ @nestjs/common loaded successfully');
+    } catch (error) {
+      console.error('❌ Failed to load @nestjs/common:', error.message);
+      throw new Error(`Critical dependency @nestjs/common could not be loaded: ${error.message}`);
+    }
+
+    try {
+      console.log('Loading @nestjs/swagger...');
+      const nestSwagger = safeRequire('@nestjs/swagger');
+      DocumentBuilder = nestSwagger.DocumentBuilder;
+      SwaggerModule = nestSwagger.SwaggerModule;
+      console.log('✅ @nestjs/swagger loaded successfully');
+    } catch (error) {
+      console.warn('⚠️ @nestjs/swagger could not be loaded, Swagger will be disabled:', error.message);
+      DocumentBuilder = null;
+      SwaggerModule = null;
+    }
 
     // Dynamically import AppModule to handle potential import issues
-    const { AppModule } = safeRequire('../../dist/src/app.module');
-    console.log('AppModule loaded successfully');
+    let AppModule;
+    const appModulePaths = [
+      '../../dist/src/app.module',
+      '../../dist/src/app.module.js',
+      path.resolve(__dirname, '../../dist/src/app.module'),
+      path.resolve(__dirname, '../../dist/src/app.module.js')
+    ];
+
+    let appModuleLoaded = false;
+    for (const modulePath of appModulePaths) {
+      try {
+        console.log(`Trying to load AppModule from: ${modulePath}`);
+        const appModuleExports = safeRequire(modulePath);
+        AppModule = appModuleExports.AppModule;
+        console.log('✅ AppModule loaded successfully from:', modulePath);
+        appModuleLoaded = true;
+        break;
+      } catch (error) {
+        console.log(`❌ Failed to load AppModule from ${modulePath}:`, error.message);
+        continue;
+      }
+    }
+
+    if (!appModuleLoaded) {
+      throw new Error('Could not load AppModule from any of the attempted paths');
+    }
 
     const app = await NestFactory.create(AppModule, {
       logger: process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['log', 'error', 'warn', 'debug', 'verbose'],
@@ -169,7 +266,7 @@ async function createApp() {
     }));
 
     // Only setup Swagger in non-production environments
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.NODE_ENV !== 'production' && DocumentBuilder && SwaggerModule) {
       try {
         const config = new DocumentBuilder()
           .setTitle('Cosmic Love API')
@@ -179,11 +276,13 @@ async function createApp() {
           .build();
         const document = SwaggerModule.createDocument(app, config);
         SwaggerModule.setup('api', app, document);
-        console.log('Swagger documentation setup completed');
+        console.log('✅ Swagger documentation setup completed');
       } catch (swaggerError) {
-        console.warn('Failed to setup Swagger documentation:', swaggerError.message);
+        console.warn('⚠️ Failed to setup Swagger documentation:', swaggerError.message);
         // Continue without Swagger in case of issues
       }
+    } else {
+      console.log('ℹ️ Swagger disabled (production mode or modules not available)');
     }
 
     console.log('Initializing NestJS application...');

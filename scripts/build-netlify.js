@@ -95,18 +95,44 @@ if (fs.existsSync(functionsPackageJsonPath)) {
     }
 
     // Install with specific flags for serverless environment
-    execSync('npm install --production --no-optional --no-audit --no-fund', {
+    // Use --legacy-peer-deps to avoid peer dependency conflicts in serverless environment
+    execSync('npm install --production --no-optional --no-audit --no-fund --legacy-peer-deps', {
       stdio: 'inherit',
       cwd: functionsDir,
       env: { ...process.env, NODE_ENV: 'production' }
     });
     console.log('✅ Function dependencies installed successfully');
 
-    // Verify critical NestJS dependencies
+    // Verify critical NestJS dependencies with detailed checking
     const criticalDeps = ['@nestjs/core', '@nestjs/common', '@nestjs/platform-express'];
-    const missingDeps = criticalDeps.filter(dep => {
+    const missingDeps = [];
+
+    criticalDeps.forEach(dep => {
       const depPath = path.join(functionsNodeModules, dep);
-      return !fs.existsSync(depPath);
+      if (!fs.existsSync(depPath)) {
+        missingDeps.push(dep);
+        console.error(`❌ Missing: ${dep} at ${depPath}`);
+      } else {
+        // Check if the main entry point exists
+        const packageJsonPath = path.join(depPath, 'package.json');
+        if (fs.existsSync(packageJsonPath)) {
+          try {
+            const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+            const mainFile = packageJson.main || 'index.js';
+            const mainPath = path.join(depPath, mainFile);
+
+            if (fs.existsSync(mainPath)) {
+              console.log(`✅ ${dep} v${packageJson.version} verified with main file: ${mainFile}`);
+            } else {
+              console.warn(`⚠️ ${dep} package.json found but main file missing: ${mainFile}`);
+            }
+          } catch (error) {
+            console.warn(`⚠️ ${dep} found but package.json is invalid:`, error.message);
+          }
+        } else {
+          console.warn(`⚠️ ${dep} directory found but package.json missing`);
+        }
+      }
     });
 
     if (missingDeps.length === 0) {
@@ -180,6 +206,33 @@ if (fs.existsSync(nodeModulesPath)) {
   if (fs.existsSync(nestjsPath)) {
     const nestjsPackages = fs.readdirSync(nestjsPath);
     console.log('📦 Available @nestjs packages:', nestjsPackages.join(', '));
+  }
+
+  // Test module loading in the functions directory context
+  console.log('🧪 Testing module loading...');
+  try {
+    // Change to functions directory to test require from that context
+    const originalCwd = process.cwd();
+    process.chdir(functionsDir);
+
+    try {
+      const testRequire = require;
+      const nestCore = testRequire('@nestjs/core');
+      console.log('✅ @nestjs/core can be required successfully');
+
+      const nestCommon = testRequire('@nestjs/common');
+      console.log('✅ @nestjs/common can be required successfully');
+
+      console.log('✅ Module loading test passed');
+    } catch (requireError) {
+      console.error('❌ Module loading test failed:', requireError.message);
+      console.error('This indicates a potential runtime issue');
+    } finally {
+      // Restore original working directory
+      process.chdir(originalCwd);
+    }
+  } catch (testError) {
+    console.error('❌ Could not run module loading test:', testError.message);
   }
 
 } else {
