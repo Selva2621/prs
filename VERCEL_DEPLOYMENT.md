@@ -1,11 +1,15 @@
-# Vercel Deployment Guide
+# Vercel Deployment Guide for NestJS Backend API
 
-This guide explains how to deploy the Cosmic Love API to Vercel.
+This guide explains how to deploy the Cosmic Love NestJS Backend API to Vercel.
+
+## Important Note
+
+This is a **NestJS Backend API Application** - not a web app. It provides REST API endpoints for mobile/frontend applications.
 
 ## Prerequisites
 
 1. **Vercel Account**: Sign up at [vercel.com](https://vercel.com)
-2. **Environment Variables**: You'll need to set up your database and other environment variables
+2. **Environment Variables**: Database and authentication configuration required
 
 ## Deployment Steps
 
@@ -14,7 +18,7 @@ This guide explains how to deploy the Cosmic Love API to Vercel.
 1. Go to [vercel.com/dashboard](https://vercel.com/dashboard)
 2. Click "New Project"
 3. Import your GitHub repository
-4. Vercel will automatically detect it as a Node.js project
+4. Vercel will detect it as a Node.js backend application
 
 ### 2. Configure Environment Variables
 
@@ -40,80 +44,119 @@ UPLOAD_DEST=./uploads
    - Install dependencies
    - Generate Prisma client
    - Build the TypeScript code
-   - Deploy the serverless function
+   - Start the NestJS backend server
 
 ## Project Structure
 
 ```
 ├── src/
-│   └── main.ts           # Modified to support both server and serverless
-├── dist/
-│   └── main.js           # Compiled serverless function entry point
-├── public/
-│   └── index.html        # Landing page
-├── vercel.json           # Vercel configuration
-└── package.json
+│   ├── main.ts           # NestJS application entry point
+│   ├── app.module.ts     # Main application module
+│   └── modules/          # Feature modules (auth, users, messages, etc.)
+├── dist/                 # Compiled TypeScript output
+├── prisma/               # Database schema and migrations
+├── vercel.json           # Vercel deployment configuration
+└── package.json          # Dependencies and scripts
 ```
 
 ## Configuration Files
 
 ### vercel.json
 Configures Vercel to:
-- Build the serverless function from `dist/main.js`
-- Route all API requests to the compiled main.js
-- Serve static files from `public/`
+- Deploy as a Node.js backend application
+- Use standard package.json build process
+- Route all requests to the NestJS application
 
 ### src/main.ts
-- Modified to work in both regular server and serverless environments
-- Exports a default handler function for Vercel
-- Includes app caching for better serverless performance
-- Includes CORS configuration and Swagger documentation
+- Standard NestJS bootstrap function
+- Configures CORS for mobile app access
+- Sets up Swagger API documentation
+- Includes validation pipes and security
+
+## API Endpoints
+
+After deployment, your NestJS backend will provide these API endpoints:
+
+### Core Endpoints
+- `GET /health` - Health check and system status
+- `GET /debug` - Environment and configuration info
+- `GET /api` - Swagger API documentation
+
+### Authentication
+- `POST /auth/register` - User registration
+- `POST /auth/login` - User login
+- `GET /auth/profile` - Get user profile
+
+### Users
+- `GET /users` - List users
+- `GET /users/:id` - Get user details
+- `GET /users/:id/stats` - User statistics
+
+### Messages
+- `POST /messages` - Send message
+- `GET /messages` - Get messages
+- `GET /messages/conversations` - Get conversations
+
+### Photos
+- `POST /photos` - Upload photo
+- `GET /photos` - Get photos
+- `POST /photos/:id/share` - Share photo
+
+### Video Calls
+- `POST /video-calls` - Initiate video call
+- `GET /video-calls/active` - Get active calls
+
+### Proposals
+- `POST /proposals` - Create proposal
+- `GET /proposals/sent` - Get sent proposals
+- `GET /proposals/received` - Get received proposals
 
 ## Important Notes
 
 ### WebSockets
-- WebSockets don't work in Vercel's serverless environment
-- The WebSocket module is included but won't function in production
-- Consider using Vercel's Edge Functions or a separate WebSocket service
+- WebSocket functionality is included for real-time features
+- May have limitations in Vercel's environment
+- Consider alternative real-time solutions if needed
 
 ### File Uploads
-- File uploads to local filesystem won't persist in serverless
-- Consider using cloud storage (AWS S3, Cloudinary, etc.)
-- Current upload endpoints may not work as expected
+- File uploads are configured for local storage
+- For production, consider cloud storage (AWS S3, Cloudinary)
+- Current upload endpoints work but files may not persist
 
 ### Database
-- Uses Supabase PostgreSQL with connection pooling
-- Prisma is configured for serverless environments
-- Connection pooling is essential for serverless functions
+- Uses Supabase PostgreSQL with Prisma ORM
+- Connection pooling configured for production
+- All database operations are async and optimized
 
 ## Troubleshooting
 
-### "NOT_FOUND" Error
-- Check that environment variables are set correctly
-- Verify database connection
+### Deployment Issues
+- Verify all environment variables are set
+- Check build logs in Vercel dashboard
+- Ensure database connection is working
+
+### API Not Responding
 - Check Vercel function logs
+- Verify environment variables
+- Test database connectivity
 
-### Build Failures
-- Ensure all dependencies are in `package.json`
-- Check TypeScript compilation errors
-- Verify Prisma schema is valid
+### CORS Issues
+- CORS is configured for mobile app origins
+- Add your frontend domain to CORS origins if needed
 
-### Performance
-- First request may be slow (cold start)
-- Subsequent requests should be faster
-- Consider using Vercel Pro for better performance
+## Testing Your Deployment
 
-## Testing
+1. **Health Check**: `GET https://your-app.vercel.app/health`
+2. **API Documentation**: `GET https://your-app.vercel.app/api`
+3. **Authentication**: `POST https://your-app.vercel.app/auth/login`
 
-After deployment, test these endpoints:
-- `GET /` - Landing page
-- `GET /health` - Health check
-- `GET /api` - Swagger documentation
-- `POST /auth/login` - Authentication
+## Local Development
 
-## Support
+To run locally:
+```bash
+npm install
+npm run build
+npm start
+```
 
-If you encounter issues:
-1. Check Vercel function logs
-2. Verify environment variables
-3. Test locally first with `npm run build && npm start`
+The API will be available at `http://localhost:3000`
