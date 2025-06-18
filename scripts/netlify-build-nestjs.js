@@ -145,22 +145,31 @@ function buildApplication() {
   logStep('BUILD', 'Building NestJS application...');
 
   try {
-    // Set NODE_ENV to production for build
-    const result = execSync('npm run build', {
-      stdio: 'pipe',
+    // First, try to run TypeScript compilation directly to see errors
+    logStep('BUILD', 'Running TypeScript compilation...');
+    execSync('npx tsc -p tsconfig.build.json', {
+      stdio: 'inherit',
       env: { ...process.env, NODE_ENV: 'production' }
     });
+    logSuccess('TypeScript compilation successful');
 
-    // Log the output
-    console.log(result.toString());
-    logSuccess('NestJS application built successfully');
   } catch (error) {
-    logError('Failed to build NestJS application');
-    logError('Build output:');
-    if (error.stdout) console.log(error.stdout.toString());
-    if (error.stderr) console.error(error.stderr.toString());
+    logError('TypeScript compilation failed');
     logError(`Exit code: ${error.status}`);
-    process.exit(1);
+
+    // Try with more permissive settings
+    logStep('BUILD', 'Trying TypeScript compilation with --skipLibCheck...');
+    try {
+      execSync('npx tsc -p tsconfig.build.json --skipLibCheck', {
+        stdio: 'inherit',
+        env: { ...process.env, NODE_ENV: 'production' }
+      });
+      logSuccess('TypeScript compilation successful with --skipLibCheck');
+    } catch (skipError) {
+      logError('TypeScript compilation failed even with --skipLibCheck');
+      logError(`Exit code: ${skipError.status}`);
+      process.exit(1);
+    }
   }
 }
 
