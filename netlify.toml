@@ -1,0 +1,126 @@
+# Netlify Configuration for NestJS Backend Application
+[build]
+  # Build command - generates Prisma client and compiles TypeScript
+  command = "npm run build"
+  
+  # Directory to publish (where the built files are located)
+  publish = "dist"
+  
+  # Base directory for the build
+  base = "."
+
+# Build environment variables
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_VERSION = "9"
+
+# Production deployment settings
+[context.production]
+  command = "npm run build"
+  
+  [context.production.environment]
+    NODE_ENV = "production"
+
+# Branch deploy settings (for feature branches)
+[context.branch-deploy]
+  command = "npm run build"
+  
+  [context.branch-deploy.environment]
+    NODE_ENV = "staging"
+
+# Deploy preview settings (for pull requests)
+[context.deploy-preview]
+  command = "npm run build"
+  
+  [context.deploy-preview.environment]
+    NODE_ENV = "staging"
+
+# Netlify Functions configuration (if you plan to use serverless functions)
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Headers for security and CORS
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Redirects for SPA routing (if needed)
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# Environment-specific redirects
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  conditions = {Role = ["admin"]}
+
+# Build plugins
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Edge functions (if using Netlify Edge Functions)
+[[edge_functions]]
+  function = "auth"
+  path = "/api/auth/*"
+
+# Form handling (if you have contact forms)
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = true
+  minify = true
+
+[build.processing.js]
+  bundle = true
+  minify = true
+
+[build.processing.html]
+  pretty_urls = true
+
+# Dev server settings for local development
+[dev]
+  command = "npm run start:dev"
+  port = 3000
+  publish = "dist"
+  autoLaunch = false
+
+# Environment variables that should be available during build
+# Note: Sensitive values should be set in Netlify UI, not here
+[build.environment]
+  # Public environment variables (safe to commit)
+  NODE_ENV = "production"
+  PORT = "3000"
+  SOCKET_PORT = "3001"
+  MAX_FILE_SIZE = "10485760"
+  UPLOAD_DEST = "./uploads"
+  JWT_EXPIRES_IN = "7d"
+
+# Branch-specific settings
+[context.staging]
+  command = "npm run build"
+  
+  [context.staging.environment]
+    NODE_ENV = "staging"
+
+# Local development context
+[context.dev]
+  command = "npm run start:dev"
+  
+  [context.dev.environment]
+    NODE_ENV = "development"
