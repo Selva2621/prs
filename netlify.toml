@@ -1,7 +1,7 @@
 # Netlify Configuration for NestJS Backend Application
 [build]
-  # Build command - generates Prisma client and compiles TypeScript
-  command = "npm run build"
+  # Build command - uses custom NestJS build script
+  command = "node scripts/netlify-build-nestjs.js"
   
   # Directory to publish (where the built files are located)
   publish = "dist"
@@ -11,8 +11,8 @@
 
 # Build environment variables
 [build.environment]
-  NODE_VERSION = "18"
-  NPM_VERSION = "9"
+  NODE_VERSION = "20"
+  NPM_VERSION = "10"
   # Public environment variables (safe to commit)
   NODE_ENV = "production"
   PORT = "3000"
@@ -23,7 +23,7 @@
 
 # Production deployment settings
 [context.production]
-  command = "npm run build"
+  command = "node scripts/netlify-build-nestjs.js"
   
   [context.production.environment]
     NODE_ENV = "production"

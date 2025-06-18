@@ -2,11 +2,11 @@
 # Use this if you want a minimal configuration
 
 [build]
-  command = "npm run build"
+  command = "npm ci --production=false && npx prisma generate && npm run build"
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "20"
   NODE_ENV = "production"
 
 # Production context
