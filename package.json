@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "npx nest build && npm run build:netlify",
+    "build": "npx prisma generate && npx tsc -p tsconfig.build.json && npm run build:netlify",
     "build:netlify": "node scripts/build-netlify.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "npx nest start",
