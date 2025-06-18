@@ -16,7 +16,7 @@ const distPackageJsonPath = path.join(__dirname, '..', 'dist', 'package.json');
 
 if (fs.existsSync(packageJsonPath)) {
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-  
+
   // Create a minimal package.json for production
   const prodPackageJson = {
     name: packageJson.name,
@@ -26,7 +26,7 @@ if (fs.existsSync(packageJsonPath)) {
       node: ">=18.0.0"
     }
   };
-  
+
   fs.writeFileSync(distPackageJsonPath, JSON.stringify(prodPackageJson, null, 2));
   console.log('✅ Created production package.json in dist/');
 }
@@ -77,5 +77,13 @@ const indexHtmlContent = `
 
 fs.writeFileSync(indexHtmlPath, indexHtmlContent.trim());
 console.log('✅ Created index.html');
+
+// Copy essential files to functions directory for better compatibility
+const functionsPackageJsonPath = path.join(__dirname, '..', 'netlify', 'functions', 'package.json');
+if (fs.existsSync(functionsPackageJsonPath)) {
+  console.log('✅ Functions package.json already exists');
+} else {
+  console.log('⚠️  Functions package.json not found - dependencies might not be available');
+}
 
 console.log('🎉 Netlify build preparation completed!');

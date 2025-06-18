@@ -1,6 +1,26 @@
-const { NestFactory } = require('@nestjs/core');
-const { ValidationPipe } = require('@nestjs/common');
-const { DocumentBuilder, SwaggerModule } = require('@nestjs/swagger');
+// Set up environment for serverless execution
+process.env.NODE_ENV = process.env.NODE_ENV || 'production';
+
+// Polyfill for optional dependencies that might not be bundled
+const originalRequire = require;
+require = function (id) {
+  try {
+    return originalRequire(id);
+  } catch (error) {
+    // Handle optional dependencies that might not be available
+    if (id === '@nestjs/microservices' ||
+      id === 'class-transformer/storage' ||
+      id === '@nestjs/microservices/microservices-module') {
+      console.warn(`Optional dependency ${id} not available, skipping...`);
+      return null;
+    }
+    throw error;
+  }
+};
+
+const { NestFactory } = originalRequire('@nestjs/core');
+const { ValidationPipe } = originalRequire('@nestjs/common');
+const { DocumentBuilder, SwaggerModule } = originalRequire('@nestjs/swagger');
 
 let cachedApp;
 
@@ -85,12 +105,18 @@ async function createApp() {
     validateEnvironment();
 
     console.log('Creating NestJS application...');
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+    console.log('Available environment variables:', Object.keys(process.env).filter(key =>
+      key.includes('DATABASE') || key.includes('JWT') || key.includes('SUPABASE')
+    ));
 
     // Dynamically import AppModule to handle potential import issues
-    const { AppModule } = require('../../dist/src/app.module');
+    const { AppModule } = originalRequire('../../dist/src/app.module');
+    console.log('AppModule loaded successfully');
 
     const app = await NestFactory.create(AppModule, {
       logger: process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['log', 'error', 'warn', 'debug', 'verbose'],
+      abortOnError: false, // Don't abort on non-critical errors
     });
 
     // Enable CORS for mobile app and web
@@ -138,6 +164,27 @@ async function createApp() {
 
   } catch (error) {
     console.error('Failed to create NestJS application:', error);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+
+    // Check if it's a module resolution error
+    if (error.message && error.message.includes('Cannot find module')) {
+      console.error('Module resolution error detected. This might be a bundling issue.');
+      try {
+        const fs = originalRequire('fs');
+        const path = originalRequire('path');
+        const distPath = path.resolve(__dirname, '../../dist/src');
+        if (fs.existsSync(distPath)) {
+          console.error('Available files in dist/src:', fs.readdirSync(distPath).join(', '));
+        } else {
+          console.error('dist/src directory not found at:', distPath);
+        }
+      } catch (fsError) {
+        console.error('Could not check filesystem:', fsError.message);
+      }
+    }
+
     throw error;
   }
 }
@@ -148,6 +195,13 @@ exports.handler = async (event, context) => {
 
   try {
     console.log(`Handling ${event.httpMethod} request to ${event.path}`);
+    console.log('Event headers:', JSON.stringify(event.headers, null, 2));
+    console.log('Context:', JSON.stringify({
+      functionName: context.functionName,
+      functionVersion: context.functionVersion,
+      memoryLimitInMB: context.memoryLimitInMB,
+      remainingTimeInMillis: context.getRemainingTimeInMillis ? context.getRemainingTimeInMillis() : 'unknown'
+    }, null, 2));
 
     const app = await createApp();
     const result = await app(event, context);
