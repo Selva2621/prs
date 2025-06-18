@@ -13,6 +13,13 @@
 [build.environment]
   NODE_VERSION = "18"
   NPM_VERSION = "9"
+  # Public environment variables (safe to commit)
+  NODE_ENV = "production"
+  PORT = "3000"
+  SOCKET_PORT = "3001"
+  MAX_FILE_SIZE = "10485760"
+  UPLOAD_DEST = "./uploads"
+  JWT_EXPIRES_IN = "7d"
 
 # Production deployment settings
 [context.production]
@@ -56,42 +63,30 @@
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
 
-# Redirects for SPA routing (if needed)
+# API redirects to Netlify Functions (uncomment if using functions)
+# [[redirects]]
+#   from = "/api/*"
+#   to = "/.netlify/functions/:splat"
+#   status = 200
+
+# Health check redirect
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  from = "/health"
+  to = "/.netlify/functions/health"
   status = 200
 
-# Environment-specific redirects
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-  conditions = {Role = ["admin"]}
+# Build plugins (add any Netlify plugins you need)
+# [[plugins]]
+#   package = "@netlify/plugin-name"
 
-# Build plugins
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
+# Edge functions (uncomment if using Netlify Edge Functions)
+# [[edge_functions]]
+#   function = "auth"
+#   path = "/api/auth/*"
 
-# Edge functions (if using Netlify Edge Functions)
-[[edge_functions]]
-  function = "auth"
-  path = "/api/auth/*"
-
-# Form handling (if you have contact forms)
-[build.processing]
-  skip_processing = false
-
-[build.processing.css]
-  bundle = true
-  minify = true
-
-[build.processing.js]
-  bundle = true
-  minify = true
-
-[build.processing.html]
-  pretty_urls = true
+# Build processing (uncomment if needed)
+# [build.processing]
+#   skip_processing = false
 
 # Dev server settings for local development
 [dev]
@@ -100,16 +95,8 @@
   publish = "dist"
   autoLaunch = false
 
-# Environment variables that should be available during build
-# Note: Sensitive values should be set in Netlify UI, not here
-[build.environment]
-  # Public environment variables (safe to commit)
-  NODE_ENV = "production"
-  PORT = "3000"
-  SOCKET_PORT = "3001"
-  MAX_FILE_SIZE = "10485760"
-  UPLOAD_DEST = "./uploads"
-  JWT_EXPIRES_IN = "7d"
+# Note: Additional environment variables should be set in Netlify UI
+# Sensitive values like DATABASE_URL, JWT_SECRET, etc. should never be committed
 
 # Branch-specific settings
 [context.staging]
