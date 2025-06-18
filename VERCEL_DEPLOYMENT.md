@@ -45,8 +45,7 @@ UPLOAD_DEST=./uploads
 ## Project Structure
 
 ```
-├── api/
-│   └── index.js          # Serverless function entry point
+├── index.js              # Serverless function entry point
 ├── dist/                 # Compiled TypeScript (generated)
 ├── public/
 │   └── index.html        # Landing page
@@ -59,13 +58,15 @@ UPLOAD_DEST=./uploads
 
 ### vercel.json
 Configures Vercel to:
-- Build the serverless function from `api/index.js`
+- Build the serverless function from `index.js`
+- Include source files and compiled output
 - Serve static files from `public/`
 - Route all API requests to the serverless function
 
-### api/index.js
+### index.js
 - Serverless function that initializes NestJS
 - Handles all API requests
+- Includes fallback compilation if dist/ is missing
 - Includes CORS configuration
 - Sets up Swagger documentation
 

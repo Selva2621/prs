@@ -8,15 +8,41 @@ let isAppInitialized = false;
 async function createNestApp() {
   if (!isAppInitialized) {
     try {
-      // Import the compiled AppModule
-      const { AppModule } = require('../dist/app.module');
-
-      // Create app with specific options for serverless
-      app = await NestFactory.create(AppModule, {
+      console.log('Initializing NestJS application...');
+      
+      // Try to load the compiled AppModule first, fallback to source
+      let AppModule;
+      try {
+        console.log('Attempting to load compiled AppModule...');
+        AppModule = require('./dist/app.module').AppModule;
+        console.log('✅ Loaded compiled AppModule');
+      } catch (distError) {
+        console.log('❌ Failed to load compiled AppModule:', distError.message);
+        console.log('🔄 Attempting to load source AppModule...');
+        try {
+          // If dist doesn't exist, we need to compile on the fly or use source
+          const { exec } = require('child_process');
+          const { promisify } = require('util');
+          const execAsync = promisify(exec);
+          
+          // Try to build if dist doesn't exist
+          console.log('Building TypeScript...');
+          await execAsync('npx tsc -p tsconfig.build.json');
+          console.log('✅ TypeScript build completed');
+          
+          AppModule = require('./dist/app.module').AppModule;
+          console.log('✅ Loaded AppModule after build');
+        } catch (buildError) {
+          console.error('❌ Failed to build or load AppModule:', buildError.message);
+          throw new Error('Cannot initialize application: ' + buildError.message);
+        }
+      }
+      
+      app = await NestFactory.create(AppModule, { 
         logger: ['error', 'warn', 'log'],
-        cors: true // Enable CORS at creation
+        cors: true
       });
-
+      
       // Enable CORS for mobile app
       app.enableCors({
         origin: [
@@ -50,9 +76,9 @@ async function createNestApp() {
 
       await app.init();
       isAppInitialized = true;
-      console.log('NestJS app initialized successfully');
+      console.log('✅ NestJS app initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize NestJS app:', error);
+      console.error('❌ Failed to initialize NestJS app:', error);
       console.error('Error details:', error.stack);
       throw error;
     }
@@ -62,18 +88,18 @@ async function createNestApp() {
 
 module.exports = async (req, res) => {
   try {
-    console.log(`Handling ${req.method} ${req.url}`);
-
+    console.log(`🌐 Handling ${req.method} ${req.url}`);
+    
     const nestApp = await createNestApp();
     const expressApp = nestApp.getHttpAdapter().getInstance();
-
+    
     // Ensure response object has required properties for Express
     if (!res.getHeader) {
       res.getHeader = function (name) {
         return this.headers && this.headers[name.toLowerCase()];
       };
     }
-
+    
     if (!res.setHeader) {
       res.setHeader = function (name, value) {
         if (!this.headers) this.headers = {};
@@ -81,7 +107,7 @@ module.exports = async (req, res) => {
         return this;
       };
     }
-
+    
     if (!res.removeHeader) {
       res.removeHeader = function (name) {
         if (this.headers) {
@@ -93,20 +119,21 @@ module.exports = async (req, res) => {
 
     // Handle the request with Express
     expressApp(req, res);
-
+    
   } catch (error) {
-    console.error('Error in serverless function:', error);
-
+    console.error('❌ Error in serverless function:', error);
+    
     // Ensure we can send an error response
     if (!res.headersSent) {
       try {
-        res.status(500).json({
-          error: 'Internal Server Error',
+        res.status(500).json({ 
+          error: 'Internal Server Error', 
           message: error.message,
-          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+          timestamp: new Date().toISOString()
         });
       } catch (responseError) {
-        console.error('Failed to send error response:', responseError);
+        console.error('❌ Failed to send error response:', responseError);
         res.end('Internal Server Error');
       }
     }
