@@ -1,9 +1,11 @@
 // Set up environment for serverless execution
 process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 
-// Polyfill for optional dependencies that might not be bundled
+// Store original require for safe access
 const originalRequire = require;
-require = function (id) {
+
+// Safe require function with better error handling
+function safeRequire(id) {
   try {
     return originalRequire(id);
   } catch (error) {
@@ -14,13 +16,10 @@ require = function (id) {
       console.warn(`Optional dependency ${id} not available, skipping...`);
       return null;
     }
+    console.error(`Failed to require module '${id}':`, error.message);
     throw error;
   }
-};
-
-const { NestFactory } = originalRequire('@nestjs/core');
-const { ValidationPipe } = originalRequire('@nestjs/common');
-const { DocumentBuilder, SwaggerModule } = originalRequire('@nestjs/swagger');
+}
 
 let cachedApp;
 
@@ -34,8 +33,30 @@ function validateEnvironment() {
   }
 }
 
-// Convert Express request/response to Netlify format
+// Create Netlify handler using serverless-http
 function createNetlifyHandler(expressApp) {
+  try {
+    // Try to use serverless-http for better compatibility
+    const serverless = safeRequire('serverless-http');
+    if (serverless) {
+      console.log('Using serverless-http for request handling');
+      return serverless(expressApp, {
+        binary: false,
+        request: (request, event, context) => {
+          // Add any custom request processing here if needed
+          return request;
+        },
+        response: (response, event, context) => {
+          // Add any custom response processing here if needed
+          return response;
+        }
+      });
+    }
+  } catch (error) {
+    console.warn('serverless-http not available, falling back to manual handler:', error.message);
+  }
+
+  // Fallback to manual handler if serverless-http is not available
   return async (event, context) => {
     return new Promise((resolve, reject) => {
       const { httpMethod, path, headers, body, queryStringParameters } = event;
@@ -110,8 +131,15 @@ async function createApp() {
       key.includes('DATABASE') || key.includes('JWT') || key.includes('SUPABASE')
     ));
 
+    // Load NestJS modules inside the function to avoid early module resolution
+    console.log('Loading NestJS modules...');
+    const { NestFactory } = safeRequire('@nestjs/core');
+    const { ValidationPipe } = safeRequire('@nestjs/common');
+    const { DocumentBuilder, SwaggerModule } = safeRequire('@nestjs/swagger');
+    console.log('NestJS modules loaded successfully');
+
     // Dynamically import AppModule to handle potential import issues
-    const { AppModule } = originalRequire('../../dist/src/app.module');
+    const { AppModule } = safeRequire('../../dist/src/app.module');
     console.log('AppModule loaded successfully');
 
     const app = await NestFactory.create(AppModule, {
@@ -142,14 +170,20 @@ async function createApp() {
 
     // Only setup Swagger in non-production environments
     if (process.env.NODE_ENV !== 'production') {
-      const config = new DocumentBuilder()
-        .setTitle('Cosmic Love API')
-        .setDescription('A romantic application API with real-time features')
-        .setVersion('1.0')
-        .addBearerAuth()
-        .build();
-      const document = SwaggerModule.createDocument(app, config);
-      SwaggerModule.setup('api', app, document);
+      try {
+        const config = new DocumentBuilder()
+          .setTitle('Cosmic Love API')
+          .setDescription('A romantic application API with real-time features')
+          .setVersion('1.0')
+          .addBearerAuth()
+          .build();
+        const document = SwaggerModule.createDocument(app, config);
+        SwaggerModule.setup('api', app, document);
+        console.log('Swagger documentation setup completed');
+      } catch (swaggerError) {
+        console.warn('Failed to setup Swagger documentation:', swaggerError.message);
+        // Continue without Swagger in case of issues
+      }
     }
 
     console.log('Initializing NestJS application...');
@@ -174,12 +208,31 @@ async function createApp() {
       try {
         const fs = originalRequire('fs');
         const path = originalRequire('path');
-        const distPath = path.resolve(__dirname, '../../dist/src');
-        if (fs.existsSync(distPath)) {
-          console.error('Available files in dist/src:', fs.readdirSync(distPath).join(', '));
+
+        // Check multiple potential paths
+        const paths = [
+          path.resolve(__dirname, '../../dist/src'),
+          path.resolve(__dirname, './node_modules'),
+          path.resolve(__dirname, '../node_modules'),
+          path.resolve(__dirname, '../../node_modules')
+        ];
+
+        paths.forEach(checkPath => {
+          if (fs.existsSync(checkPath)) {
+            console.error(`Available in ${checkPath}:`, fs.readdirSync(checkPath).slice(0, 10).join(', '));
+          } else {
+            console.error(`Path not found: ${checkPath}`);
+          }
+        });
+
+        // Check specifically for @nestjs/core
+        const nestjsCorePath = path.resolve(__dirname, './node_modules/@nestjs/core');
+        if (fs.existsSync(nestjsCorePath)) {
+          console.error('@nestjs/core found at:', nestjsCorePath);
         } else {
-          console.error('dist/src directory not found at:', distPath);
+          console.error('@nestjs/core not found at expected path:', nestjsCorePath);
         }
+
       } catch (fsError) {
         console.error('Could not check filesystem:', fsError.message);
       }
