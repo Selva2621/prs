@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "npx prisma generate && npx tsc -p tsconfig.build.json",
+    "build": "npx prisma generate && npx tsc -p tsconfig.build.json --skipLibCheck",
     "build:prod": "NODE_ENV=production npm run build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "npx nest start",
@@ -33,7 +33,8 @@
     "deploy:prod": "NODE_ENV=production RUN_MIGRATIONS=true npm run deploy",
     "netlify:build": "chmod +x scripts/netlify-build.sh && ./scripts/netlify-build.sh",
     "env:copy": "cp .env.example .env.local",
-    "health": "curl -f http://localhost:3000/api/health || exit 1"
+    "health": "curl -f http://localhost:3000/api/health || exit 1",
+    "test:build": "node scripts/test-build-local.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

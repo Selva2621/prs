@@ -1,7 +1,7 @@
 # Netlify Configuration for NestJS Backend Application
 [build]
-  # Build command - direct TypeScript compilation with error visibility
-  command = "npm ci --production=false && npx prisma generate && npx tsc -p tsconfig.build.json --skipLibCheck"
+  # Build command - ultra simple approach
+  command = "npm install && npx prisma generate && npm run build"
   
   # Directory to publish (where the built files are located)
   publish = "dist"
@@ -23,7 +23,7 @@
 
 # Production deployment settings
 [context.production]
-  command = "npm ci --production=false && npx prisma generate && npx tsc -p tsconfig.build.json --skipLibCheck"
+  command = "npm install && npx prisma generate && npm run build"
   
   [context.production.environment]
     NODE_ENV = "production"
