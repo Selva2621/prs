@@ -8,6 +8,7 @@
   "scripts": {
     "build": "npx prisma generate && npx tsc -p tsconfig.build.json && npm run build:netlify",
     "build:netlify": "node scripts/build-netlify.js",
+    "build:functions": "npm install --prefix netlify/functions",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "npx nest start",
     "start:dev": "npx nest start --watch",

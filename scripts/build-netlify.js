@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 console.log('🔧 Building for Netlify deployment...');
 
@@ -78,12 +79,44 @@ const indexHtmlContent = `
 fs.writeFileSync(indexHtmlPath, indexHtmlContent.trim());
 console.log('✅ Created index.html');
 
-// Copy essential files to functions directory for better compatibility
+// Install dependencies in functions directory for Netlify Functions
 const functionsPackageJsonPath = path.join(__dirname, '..', 'netlify', 'functions', 'package.json');
 if (fs.existsSync(functionsPackageJsonPath)) {
-  console.log('✅ Functions package.json already exists');
+  console.log('✅ Functions package.json found, installing dependencies...');
+
+  try {
+    console.log('📦 Installing function dependencies...');
+    execSync('npm install --production --no-optional', {
+      stdio: 'inherit',
+      cwd: functionsDir
+    });
+    console.log('✅ Function dependencies installed successfully');
+  } catch (error) {
+    console.error('❌ Failed to install function dependencies:', error.message);
+    console.log('⚠️  Continuing without function dependencies - this may cause runtime errors');
+  }
 } else {
   console.log('⚠️  Functions package.json not found - dependencies might not be available');
+}
+
+// Verify critical dependencies are available
+const criticalDeps = ['@nestjs/core', '@nestjs/common', '@nestjs/platform-express'];
+const nodeModulesPath = path.join(functionsDir, 'node_modules');
+
+if (fs.existsSync(nodeModulesPath)) {
+  console.log('🔍 Verifying critical dependencies...');
+  const missingDeps = criticalDeps.filter(dep => {
+    const depPath = path.join(nodeModulesPath, dep);
+    return !fs.existsSync(depPath);
+  });
+
+  if (missingDeps.length === 0) {
+    console.log('✅ All critical dependencies are available');
+  } else {
+    console.log('⚠️  Missing critical dependencies:', missingDeps.join(', '));
+  }
+} else {
+  console.log('⚠️  No node_modules found in functions directory');
 }
 
 console.log('🎉 Netlify build preparation completed!');
