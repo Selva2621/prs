@@ -1,0 +1,59 @@
+# Dependencies
+node_modules
+
+# Development files
+src
+test
+*.spec.ts
+*.test.ts
+
+# Configuration files
+.env
+.env.local
+.env.development
+.env.test
+tsconfig.json
+tsconfig.build.json
+nest-cli.json
+eslint.config.mjs
+
+# Documentation
+README.md
+*.md
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage
+
+# Uploads (if not needed in production)
+uploads
+
+# Scripts
+scripts
+
+# Database files
+database
+
+# Prisma (keep only the generated client)
+prisma/migrations
+prisma/seed.ts

@@ -59,6 +59,51 @@ $ npm run test:cov
 
 ## Deployment
 
+### Vercel Deployment
+
+This NestJS application is configured for deployment on Vercel. The project includes:
+
+- `vercel.json` configuration file for serverless deployment
+- Serverless-compatible main.ts with Express adapter
+- Automatic Prisma client generation during build
+
+#### Prerequisites
+
+1. **Environment Variables**: Set up the following environment variables in your Vercel dashboard:
+   ```
+   DATABASE_URL=your_postgresql_connection_string
+   DIRECT_URL=your_direct_postgresql_connection_string
+   SUPABASE_URL=your_supabase_url
+   SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+   JWT_SECRET=your_jwt_secret
+   JWT_EXPIRES_IN=7d
+   NODE_ENV=production
+   ```
+
+2. **Database**: Ensure your PostgreSQL database is accessible from Vercel (e.g., using Supabase, Railway, or PlanetScale)
+
+#### Deploy to Vercel
+
+1. **Via Vercel CLI**:
+   ```bash
+   npm install -g vercel
+   vercel
+   ```
+
+2. **Via GitHub Integration**:
+   - Connect your repository to Vercel
+   - Push to your main branch
+   - Vercel will automatically deploy
+
+#### Important Notes
+
+- The application uses serverless functions, so WebSocket connections may have limitations
+- File uploads are handled locally and may need adjustment for serverless environments
+- Database migrations should be run separately before deployment
+
+### Other Deployment Options
+
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
 
 If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
