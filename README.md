@@ -23,27 +23,7 @@
 
 ## Description
 
-**Cosmic Love API** - A NestJS backend application providing REST API endpoints for a romantic mobile application. Features include authentication, real-time messaging, photo sharing, video calls, and proposal management.
-
-## 🚀 Features
-
-- **Authentication** - JWT-based user registration and login
-- **Real-time Messaging** - WebSocket chat system
-- **Photo Sharing** - Upload and share photos
-- **Video Calls** - Video calling functionality
-- **Proposals** - Marriage proposal system
-- **Admin Panel** - Administrative features
-
-## 📱 API Endpoints
-
-- `GET /health` - Health check
-- `GET /api` - Swagger documentation
-- `POST /auth/login` - Authentication
-- `GET /users` - User management
-- `POST /messages` - Messaging
-- `POST /photos` - Photo uploads
-- `POST /video-calls` - Video calls
-- `POST /proposals` - Proposals
+[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
 ## Project setup
 
@@ -51,22 +31,9 @@
 $ npm install
 ```
 
-## Environment Variables
-
-Create a `.env` file with:
-```
-DATABASE_URL=your_supabase_database_url
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your_anon_key
-JWT_SECRET=your_jwt_secret
-```
-
 ## Compile and run the project
 
 ```bash
-# build
-$ npm run build
-
 # development
 $ npm run start
 

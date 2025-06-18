@@ -41,5 +41,4 @@ async function bootstrap() {
   console.log(`🌐 Server accessible on network at: http://192.168.86.8:${port}`);
   console.log(`📚 API Documentation: http://localhost:${port}/api`);
 }
-
 bootstrap();
