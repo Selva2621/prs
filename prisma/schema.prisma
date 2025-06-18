@@ -1,0 +1,230 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Enums
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  EMOJI
+  LOCATION
+  PROPOSAL
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum PhotoCategory {
+  SELFIE
+  COUPLE
+  MEMORY
+  SPECIAL
+  ANNIVERSARY
+  TRAVEL
+  FAMILY
+  FRIENDS
+  NATURE
+  OTHER
+}
+
+enum CallStatus {
+  INITIATED
+  RINGING
+  CONNECTED
+  ENDED
+  MISSED
+  DECLINED
+  FAILED
+}
+
+enum ProposalType {
+  MARRIAGE
+  ANNIVERSARY
+  VALENTINE
+  BIRTHDAY
+  SURPRISE
+  CUSTOM
+}
+
+enum ProposalStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+  VIEWED
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum ChatInvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+// Models
+model User {
+  id          String    @id @default(uuid()) @db.Uuid
+  email       String    @unique
+  password    String
+  fullName    String?   @map("full_name")
+  avatarUrl   String?   @map("avatar_url")
+  phone       String?
+  birthday    DateTime? @db.Date
+  role        UserRole  @default(USER)
+  isActive    Boolean   @default(true) @map("is_active")
+  lastSeen    DateTime? @map("last_seen") @db.Timestamp(6)
+  preferences Json?     @db.JsonB
+  profileData Json?     @map("profile_data") @db.JsonB
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  // Relations
+  sentMessages        Message[]        @relation("SentMessages")
+  receivedMessages    Message[]        @relation("ReceivedMessages")
+  uploadedPhotos      Photo[]          @relation("UploadedPhotos")
+  initiatedCalls      VideoCall[]      @relation("InitiatedCalls")
+  receivedCalls       VideoCall[]      @relation("ReceivedCalls")
+  proposals           Proposal[]
+  sentInvitations     ChatInvitation[] @relation("SentInvitations")
+  receivedInvitations ChatInvitation[] @relation("ReceivedInvitations")
+
+  @@map("users")
+}
+
+model Message {
+  id          String        @id @default(uuid()) @db.Uuid
+  content     String        @db.Text
+  type        MessageType   @default(TEXT)
+  status      MessageStatus @default(SENT)
+  metadata    Json?         @db.JsonB
+  readAt      DateTime?     @map("read_at") @db.Timestamp(6)
+  deliveredAt DateTime?     @map("delivered_at") @db.Timestamp(6)
+  isEdited    Boolean       @default(false) @map("is_edited")
+  editedAt    DateTime?     @map("edited_at") @db.Timestamp(6)
+  isDeleted   Boolean       @default(false) @map("is_deleted")
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  // Relations
+  sender      User   @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  senderId    String @map("sender_id") @db.Uuid
+  recipient   User   @relation("ReceivedMessages", fields: [recipientId], references: [id], onDelete: Cascade)
+  recipientId String @map("recipient_id") @db.Uuid
+
+  @@map("messages")
+}
+
+model Photo {
+  id           String        @id @default(uuid()) @db.Uuid
+  title        String?
+  description  String?       @db.Text
+  fileUrl      String        @map("file_url")
+  thumbnailUrl String?       @map("thumbnail_url")
+  fileSize     Int           @map("file_size")
+  fileType     String        @map("file_type")
+  width        Int?
+  height       Int?
+  category     PhotoCategory @default(OTHER)
+  metadata     Json?         @db.JsonB
+  takenAt      DateTime?     @map("taken_at") @db.Date
+  isFavorite   Boolean       @default(true) @map("is_favorite")
+  isVisible    Boolean       @default(true) @map("is_visible")
+  viewCount    Int           @default(0) @map("view_count")
+  likeCount    Int           @default(0) @map("like_count")
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  // Relations
+  uploadedBy   User   @relation("UploadedPhotos", fields: [uploadedById], references: [id], onDelete: Cascade)
+  uploadedById String @map("uploaded_by_id") @db.Uuid
+
+  @@map("photos")
+}
+
+model VideoCall {
+  id           String     @id @default(uuid()) @db.Uuid
+  status       CallStatus @default(INITIATED)
+  startedAt    DateTime?  @map("started_at") @db.Timestamp(6)
+  endedAt      DateTime?  @map("ended_at") @db.Timestamp(6)
+  duration     Int?       @default(0) // in seconds
+  quality      String?    @default("HD")
+  metadata     Json?      @db.JsonB
+  isRecorded   Boolean    @default(false) @map("is_recorded")
+  recordingUrl String?    @map("recording_url")
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  // Relations
+  caller   User   @relation("InitiatedCalls", fields: [callerId], references: [id], onDelete: Cascade)
+  callerId String @map("caller_id") @db.Uuid
+  callee   User   @relation("ReceivedCalls", fields: [calleeId], references: [id], onDelete: Cascade)
+  calleeId String @map("callee_id") @db.Uuid
+
+  @@map("video_calls")
+}
+
+model Proposal {
+  id            String         @id @default(uuid()) @db.Uuid
+  title         String
+  message       String         @db.Text
+  type          ProposalType   @default(MARRIAGE)
+  status        ProposalStatus @default(DRAFT)
+  customization Json?          @db.JsonB
+  scheduledFor  DateTime?      @map("scheduled_for") @db.Timestamp(6)
+  sentAt        DateTime?      @map("sent_at") @db.Timestamp(6)
+  viewedAt      DateTime?      @map("viewed_at") @db.Timestamp(6)
+  respondedAt   DateTime?      @map("responded_at") @db.Timestamp(6)
+  response      String?        @db.Text
+  isAccepted    Boolean?       @map("is_accepted")
+  expiresAt     DateTime?      @map("expires_at") @db.Timestamp(6)
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  // Relations
+  proposer   User   @relation(fields: [proposerId], references: [id], onDelete: Cascade)
+  proposerId String @map("proposer_id") @db.Uuid
+
+  @@map("proposals")
+}
+
+model ChatInvitation {
+  id         String               @id @default(uuid()) @db.Uuid
+  message    String               @db.Text
+  status     ChatInvitationStatus @default(PENDING)
+  createdAt  DateTime             @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt  DateTime             @updatedAt @map("updated_at") @db.Timestamp(6)
+  acceptedAt DateTime?            @map("accepted_at") @db.Timestamp(6)
+  rejectedAt DateTime?            @map("rejected_at") @db.Timestamp(6)
+  expiresAt  DateTime?            @map("expires_at") @db.Timestamp(6)
+
+  // Relations
+  sender      User   @relation("SentInvitations", fields: [senderId], references: [id], onDelete: Cascade)
+  senderId    String @map("sender_id") @db.Uuid
+  recipient   User   @relation("ReceivedInvitations", fields: [recipientId], references: [id], onDelete: Cascade)
+  recipientId String @map("recipient_id") @db.Uuid
+
+  @@map("chat_invitations")
+}
