@@ -1,7 +1,7 @@
 # Netlify Configuration for NestJS Backend Application
 [build]
-  # Build command - uses custom NestJS build script
-  command = "node scripts/netlify-build-nestjs.js"
+  # Build command - simple step-by-step build
+  command = "node scripts/simple-build.js"
   
   # Directory to publish (where the built files are located)
   publish = "dist"
