@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "npx prisma generate && npx tsc -p tsconfig.build.json --skipLibCheck",
+    "build": "npx prisma generate && npx tsc -p tsconfig.build.json",
     "build:prod": "NODE_ENV=production npm run build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "npx nest start",
@@ -28,14 +28,7 @@
     "db:seed:admin": "ts-node prisma/migrations/add-admin-users.ts",
     "db:reset": "prisma migrate reset",
     "db:test": "node scripts/test-prisma-connection.js",
-    "deploy": "node scripts/deploy.js",
-    "deploy:staging": "NODE_ENV=staging npm run deploy",
-    "deploy:prod": "NODE_ENV=production RUN_MIGRATIONS=true npm run deploy",
-    "netlify:build": "chmod +x scripts/netlify-build.sh && ./scripts/netlify-build.sh",
-    "env:copy": "cp .env.example .env.local",
-    "health": "curl -f http://localhost:3000/api/health || exit 1",
-    "test:build": "node scripts/test-build-local.js",
-    "env:show": "node scripts/show-env-for-netlify.js"
+    "health": "curl -f http://localhost:3000/api/health || exit 1"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

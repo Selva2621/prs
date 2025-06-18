@@ -1,7 +1,0 @@
-# Minimal Netlify Configuration - Use this if main config fails
-[build]
-  command = "npm install && npm run build"
-  publish = "dist"
-
-[build.environment]
-  NODE_VERSION = "20"
