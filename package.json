@@ -34,7 +34,8 @@
     "netlify:build": "chmod +x scripts/netlify-build.sh && ./scripts/netlify-build.sh",
     "env:copy": "cp .env.example .env.local",
     "health": "curl -f http://localhost:3000/api/health || exit 1",
-    "test:build": "node scripts/test-build-local.js"
+    "test:build": "node scripts/test-build-local.js",
+    "env:show": "node scripts/show-env-for-netlify.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
