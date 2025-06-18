@@ -9,40 +9,44 @@ async function createNestApp() {
   if (!isAppInitialized) {
     try {
       console.log('Initializing NestJS application...');
-      
-      // Try to load the compiled AppModule first, fallback to source
+
+      // Load the compiled AppModule - it should exist after build
       let AppModule;
       try {
-        console.log('Attempting to load compiled AppModule...');
-        AppModule = require('./dist/app.module').AppModule;
-        console.log('✅ Loaded compiled AppModule');
-      } catch (distError) {
-        console.log('❌ Failed to load compiled AppModule:', distError.message);
-        console.log('🔄 Attempting to load source AppModule...');
-        try {
-          // If dist doesn't exist, we need to compile on the fly or use source
-          const { exec } = require('child_process');
-          const { promisify } = require('util');
-          const execAsync = promisify(exec);
-          
-          // Try to build if dist doesn't exist
-          console.log('Building TypeScript...');
-          await execAsync('npx tsc -p tsconfig.build.json');
-          console.log('✅ TypeScript build completed');
-          
-          AppModule = require('./dist/app.module').AppModule;
-          console.log('✅ Loaded AppModule after build');
-        } catch (buildError) {
-          console.error('❌ Failed to build or load AppModule:', buildError.message);
-          throw new Error('Cannot initialize application: ' + buildError.message);
+        console.log('Attempting to load compiled AppModule from ./dist/app.module...');
+        const appModuleExports = require('./dist/app.module');
+        AppModule = appModuleExports.AppModule;
+
+        if (!AppModule) {
+          console.log('AppModule not found in exports, trying default export...');
+          AppModule = appModuleExports.default || appModuleExports;
         }
+
+        if (!AppModule) {
+          throw new Error('AppModule is undefined in the exports');
+        }
+
+        console.log('✅ Loaded compiled AppModule successfully');
+      } catch (distError) {
+        console.error('❌ Failed to load compiled AppModule:', distError.message);
+        console.error('Available files in current directory:', require('fs').readdirSync('.'));
+
+        try {
+          console.log('Checking if dist directory exists...');
+          const distFiles = require('fs').readdirSync('./dist');
+          console.log('Files in dist directory:', distFiles);
+        } catch (dirError) {
+          console.error('❌ Dist directory does not exist:', dirError.message);
+        }
+
+        throw new Error('Cannot find compiled AppModule. Build may have failed. Error: ' + distError.message);
       }
-      
-      app = await NestFactory.create(AppModule, { 
+
+      app = await NestFactory.create(AppModule, {
         logger: ['error', 'warn', 'log'],
         cors: true
       });
-      
+
       // Enable CORS for mobile app
       app.enableCors({
         origin: [
@@ -89,17 +93,17 @@ async function createNestApp() {
 module.exports = async (req, res) => {
   try {
     console.log(`🌐 Handling ${req.method} ${req.url}`);
-    
+
     const nestApp = await createNestApp();
     const expressApp = nestApp.getHttpAdapter().getInstance();
-    
+
     // Ensure response object has required properties for Express
     if (!res.getHeader) {
       res.getHeader = function (name) {
         return this.headers && this.headers[name.toLowerCase()];
       };
     }
-    
+
     if (!res.setHeader) {
       res.setHeader = function (name, value) {
         if (!this.headers) this.headers = {};
@@ -107,7 +111,7 @@ module.exports = async (req, res) => {
         return this;
       };
     }
-    
+
     if (!res.removeHeader) {
       res.removeHeader = function (name) {
         if (this.headers) {
@@ -119,15 +123,15 @@ module.exports = async (req, res) => {
 
     // Handle the request with Express
     expressApp(req, res);
-    
+
   } catch (error) {
     console.error('❌ Error in serverless function:', error);
-    
+
     // Ensure we can send an error response
     if (!res.headersSent) {
       try {
-        res.status(500).json({ 
-          error: 'Internal Server Error', 
+        res.status(500).json({
+          error: 'Internal Server Error',
           message: error.message,
           stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
           timestamp: new Date().toISOString()

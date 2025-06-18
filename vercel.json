@@ -1,17 +1,14 @@
 {
   "version": 2,
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
   "builds": [
     {
       "src": "index.js",
       "use": "@vercel/node",
       "config": {
         "includeFiles": [
-          "src/**",
-          "prisma/**",
-          "dist/**",
-          "tsconfig.json",
-          "tsconfig.build.json",
-          "node_modules/@prisma/client/**"
+          "dist/**"
         ]
       }
     },
