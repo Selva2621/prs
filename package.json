@@ -5,6 +5,7 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
+  "main": "dist/main.js",
   "scripts": {
     "build": "npx prisma generate && npx tsc -p tsconfig.build.json",
     "build:prod": "NODE_ENV=production npm run build",
