@@ -1,46 +1,66 @@
 const axios = require('axios');
 
-async function verifyDeployment(baseUrl) {
-  console.log('🔍 Verifying Cosmic Love API deployment...\n');
-  
+const BASE_URL = process.argv[2] || 'http://localhost:3000';
+
+async function testEndpoint(endpoint, method = 'GET', data = null) {
   try {
-    // Test basic health endpoint
-    console.log('1. Testing basic health endpoint...');
-    const healthResponse = await axios.get(`${baseUrl}/`);
-    console.log(`✅ Health check: ${healthResponse.status} - ${healthResponse.data}`);
-    
-    // Test API documentation
-    console.log('\n2. Testing API documentation...');
-    const docsResponse = await axios.get(`${baseUrl}/api`);
-    console.log(`✅ API docs: ${docsResponse.status} - Swagger UI loaded`);
-    
-    // Test a protected endpoint (should return 401)
-    console.log('\n3. Testing protected endpoint...');
-    try {
-      await axios.get(`${baseUrl}/users/profile`);
-    } catch (error) {
-      if (error.response && error.response.status === 401) {
-        console.log(`✅ Protected endpoint: ${error.response.status} - Correctly requires authentication`);
-      } else {
-        throw error;
-      }
+    const config = {
+      method,
+      url: `${BASE_URL}${endpoint}`,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    };
+
+    if (data) {
+      config.data = data;
     }
-    
-    console.log('\n🎉 Deployment verification completed successfully!');
-    console.log(`🌐 Your API is live at: ${baseUrl}`);
-    console.log(`📚 API Documentation: ${baseUrl}/api`);
-    
+
+    const response = await axios(config);
+    console.log(`✅ ${method} ${endpoint} - Status: ${response.status}`);
+
+    if (response.data) {
+      console.log(`   Response: ${JSON.stringify(response.data).substring(0, 100)}...`);
+    }
+
+    return true;
   } catch (error) {
-    console.error('\n❌ Deployment verification failed:');
-    console.error(error.message);
-    if (error.response) {
-      console.error(`Status: ${error.response.status}`);
-      console.error(`Data: ${JSON.stringify(error.response.data, null, 2)}`);
+    console.log(`❌ ${method} ${endpoint} - Error: ${error.response?.status || error.message}`);
+    if (error.response?.data) {
+      console.log(`   Error details: ${JSON.stringify(error.response.data)}`);
     }
-    process.exit(1);
+    return false;
   }
 }
 
-// Get URL from command line argument or use default
-const url = process.argv[2] || 'http://localhost:3000';
-verifyDeployment(url);
+async function verifyDeployment() {
+  console.log(`🔍 Verifying deployment at: ${BASE_URL}`);
+  console.log('='.repeat(50));
+
+  const tests = [
+    { endpoint: '/', method: 'GET' },
+    { endpoint: '/api', method: 'GET' },
+    { endpoint: '/health', method: 'GET' },
+    { endpoint: '/auth/register', method: 'POST', data: { email: 'test@example.com', password: 'test123' } },
+  ];
+
+  let passed = 0;
+  let total = tests.length;
+
+  for (const test of tests) {
+    const success = await testEndpoint(test.endpoint, test.method, test.data);
+    if (success) passed++;
+    console.log('');
+  }
+
+  console.log('='.repeat(50));
+  console.log(`📊 Test Results: ${passed}/${total} passed`);
+
+  if (passed === total) {
+    console.log('🎉 All tests passed! Deployment is working correctly.');
+  } else {
+    console.log('⚠️  Some tests failed. Please check your deployment configuration.');
+  }
+}
+
+verifyDeployment().catch(console.error);

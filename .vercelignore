@@ -2,7 +2,6 @@
 node_modules
 
 # Development files
-src
 test
 *.spec.ts
 *.test.ts
@@ -12,7 +11,6 @@ test
 .env.local
 .env.development
 .env.test
-tsconfig.json
 tsconfig.build.json
 nest-cli.json
 eslint.config.mjs
