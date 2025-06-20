@@ -68,8 +68,9 @@ SOCKET_PORT=3001
 
 The project has been configured with:
 
-- **`vercel.json`**: Updated Vercel configuration with proper builds and routes
+- **`vercel.json`**: Updated Vercel configuration with proper functions and rewrites
 - **`api/index.ts`**: Vercel serverless function handler
+- **`public/index.html`**: Static landing page for API documentation
 - **`src/main.ts`**: Modified to support serverless deployment
 - **`.vercelignore`**: Updated to include necessary source files
 - **Build scripts**: Automatic Prisma client generation
@@ -84,7 +85,7 @@ After deployment, verify your API is working:
    ```
 
 2. **Manual verification**:
-   - Visit `https://your-app.vercel.app` (should return "Hello World!")
+   - Visit `https://your-app.vercel.app` (should show API landing page)
    - Visit `https://your-app.vercel.app/health` (should return health status)
    - Visit `https://your-app.vercel.app/api` (should show Swagger documentation)
 
@@ -129,6 +130,11 @@ After deployment, verify your API is working:
 - Verify that the build process completes successfully
 - Check Vercel function logs for any compilation errors
 
+### "Missing Public Directory" Errors
+- The `public/index.html` file provides a static landing page
+- This satisfies Vercel's requirement for static content
+- The API endpoints are handled by the serverless function in `api/index.ts`
+
 ### Performance Issues
 - Monitor function execution time (Vercel has timeout limits)
 - Consider optimizing database queries
@@ -140,16 +146,16 @@ The project uses the following build configuration:
 
 ```json
 {
-  "builds": [
-    {
-      "src": "api/index.ts",
-      "use": "@vercel/node"
+  "version": 2,
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 30
     }
-  ],
-  "routes": [
+  },
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "/api"
+      "source": "/(.*)",
+      "destination": "/api"
     }
   ]
 }
@@ -164,8 +170,8 @@ The project uses the following build configuration:
 ## 🎉 Success!
 
 Once deployed, your Cosmic Love API will be available at:
-- **API Endpoint**: `https://your-app.vercel.app`
+- **Landing Page**: `https://your-app.vercel.app`
 - **Health Check**: `https://your-app.vercel.app/health`
-- **Documentation**: `https://your-app.vercel.app/api`
+- **API Documentation**: `https://your-app.vercel.app/api`
 
 Your NestJS backend is now running serverlessly on Vercel! 🚀

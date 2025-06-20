@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Love API</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .endpoint {
+            background: #f5f5f5;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .method {
+            font-weight: bold;
+            color: #007acc;
+        }
+
+        .url {
+            font-family: monospace;
+            background: #e8e8e8;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .status.ok {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>💕 Cosmic Love API</h1>
+        <p>A romantic application API with real-time features</p>
+    </div>
+
+    <h2>API Status</h2>
+    <div id="status">Checking API status...</div>
+
+    <h2>Available Endpoints</h2>
+
+    <div class="endpoint">
+        <div><span class="method">GET</span> <span class="url">/</span></div>
+        <p>Root endpoint - Returns "Hello World!"</p>
+    </div>
+
+    <div class="endpoint">
+        <div><span class="method">GET</span> <span class="url">/health</span></div>
+        <p>Health check endpoint - Returns API status and uptime</p>
+    </div>
+
+    <div class="endpoint">
+        <div><span class="method">GET</span> <span class="url">/api</span></div>
+        <p>API documentation - Swagger UI interface</p>
+    </div>
+
+    <div class="endpoint">
+        <div><span class="method">POST</span> <span class="url">/auth/register</span></div>
+        <p>User registration endpoint</p>
+    </div>
+
+    <div class="endpoint">
+        <div><span class="method">POST</span> <span class="url">/auth/login</span></div>
+        <p>User authentication endpoint</p>
+    </div>
+
+    <script>
+        // Check API health
+        async function checkHealth() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+
+                const statusDiv = document.getElementById('status');
+                statusDiv.innerHTML = `
+                    <span class="status ok">✅ API is running</span>
+                    <p><strong>Uptime:</strong> ${Math.round(data.uptime)}s</p>
+                    <p><strong>Environment:</strong> ${data.environment}</p>
+                    <p><strong>Version:</strong> ${data.version}</p>
+                `;
+            } catch (error) {
+                const statusDiv = document.getElementById('status');
+                statusDiv.innerHTML = `
+                    <span class="status error">❌ API is not responding</span>
+                    <p>Error: ${error.message}</p>
+                `;
+            }
+        }
+
+        // Check health on page load
+        checkHealth();
+
+        // Refresh health check every 30 seconds
+        setInterval(checkHealth, 30000);
+    </script>
+</body>
+
+</html>
