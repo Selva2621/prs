@@ -23,6 +23,7 @@ async function createApp() {
       'exp://192.168.1.100:19000',
       'exp://192.168.86.8:8081',
       'http://192.168.86.8:8081',
+      'https://prs-c7e1.onrender.com',
       '*' // Allow all origins for development
     ],
     credentials: true,
