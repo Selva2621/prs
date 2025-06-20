@@ -1,6 +1,6 @@
 # Vercel Deployment Guide for Cosmic Love API
 
-This guide will help you deploy your NestJS Cosmic Love API to Vercel.
+This guide will help you deploy your NestJS Cosmic Love API to Vercel with the correct configuration.
 
 ## 🚀 Quick Start
 
@@ -68,9 +68,10 @@ SOCKET_PORT=3001
 
 The project has been configured with:
 
-- **`vercel.json`**: Vercel configuration file
+- **`vercel.json`**: Updated Vercel configuration with proper builds and routes
+- **`api/index.ts`**: Vercel serverless function handler
 - **`src/main.ts`**: Modified to support serverless deployment
-- **`.vercelignore`**: Excludes unnecessary files from deployment
+- **`.vercelignore`**: Updated to include necessary source files
 - **Build scripts**: Automatic Prisma client generation
 
 ## 🔍 Verification
@@ -84,6 +85,7 @@ After deployment, verify your API is working:
 
 2. **Manual verification**:
    - Visit `https://your-app.vercel.app` (should return "Hello World!")
+   - Visit `https://your-app.vercel.app/health` (should return health status)
    - Visit `https://your-app.vercel.app/api` (should show Swagger documentation)
 
 ## ⚠️ Important Considerations
@@ -113,16 +115,45 @@ After deployment, verify your API is working:
 - Check that all dependencies are in `dependencies` (not `devDependencies`)
 - Ensure environment variables are set correctly
 - Verify Prisma schema is valid
+- Make sure TypeScript compilation is successful
 
 ### Runtime Errors
 - Check Vercel function logs in the dashboard
 - Verify database connectivity
 - Ensure all required environment variables are set
+- Check if Prisma client is generated correctly
+
+### "Page Not Found" Errors
+- Ensure the `api/index.ts` file exists and is properly configured
+- Check that `vercel.json` has the correct routing configuration
+- Verify that the build process completes successfully
+- Check Vercel function logs for any compilation errors
 
 ### Performance Issues
 - Monitor function execution time (Vercel has timeout limits)
 - Consider optimizing database queries
 - Use connection pooling for database connections
+
+## 🔧 Build Configuration
+
+The project uses the following build configuration:
+
+```json
+{
+  "builds": [
+    {
+      "src": "api/index.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/api"
+    }
+  ]
+}
+```
 
 ## 📚 Additional Resources
 
@@ -134,6 +165,7 @@ After deployment, verify your API is working:
 
 Once deployed, your Cosmic Love API will be available at:
 - **API Endpoint**: `https://your-app.vercel.app`
+- **Health Check**: `https://your-app.vercel.app/health`
 - **Documentation**: `https://your-app.vercel.app/api`
 
 Your NestJS backend is now running serverlessly on Vercel! 🚀
