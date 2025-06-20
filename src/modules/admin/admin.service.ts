@@ -4,7 +4,7 @@ import { UserRole } from '@prisma/client';
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async getDashboardData(adminUser: any) {
     this.validateAdminAccess(adminUser);
@@ -188,7 +188,7 @@ export class AdminService {
 
     // Basic system health checks
     const dbHealth = await this.checkDatabaseHealth();
-    
+
     return {
       status: 'healthy',
       timestamp: new Date(),
@@ -274,7 +274,7 @@ export class AdminService {
     try {
       await this.prisma.$queryRaw`SELECT 1`;
       return { status: 'healthy', latency: 'low' };
-    } catch (error) {
+    } catch (error: any) {
       return { status: 'unhealthy', error: error.message };
     }
   }

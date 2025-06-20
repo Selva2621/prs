@@ -14,7 +14,7 @@ export class RespondToProposalDto {
   })
   @IsEnum(ProposalResponse)
   @IsNotEmpty()
-  response: ProposalResponse;
+  response!: ProposalResponse;
 
   @ApiProperty({
     description: 'Optional message with the response',

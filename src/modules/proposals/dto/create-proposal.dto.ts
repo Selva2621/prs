@@ -9,7 +9,7 @@ export class CreateProposalDto {
   })
   @IsString()
   @IsNotEmpty()
-  title: string;
+  title!: string;
 
   @ApiProperty({
     description: 'The proposal message',
@@ -17,7 +17,7 @@ export class CreateProposalDto {
   })
   @IsString()
   @IsNotEmpty()
-  message: string;
+  message!: string;
 
   @ApiProperty({
     description: 'The type of proposal',

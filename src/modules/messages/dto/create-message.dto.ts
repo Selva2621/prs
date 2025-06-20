@@ -9,7 +9,7 @@ export class CreateMessageDto {
   })
   @IsString()
   @IsNotEmpty()
-  content: string;
+  content!: string;
 
   @ApiProperty({
     description: 'The ID of the message recipient',
@@ -17,7 +17,7 @@ export class CreateMessageDto {
   })
   @IsString()
   @IsNotEmpty()
-  recipientId: string;
+  recipientId!: string;
 
   @ApiProperty({
     description: 'The type of message',

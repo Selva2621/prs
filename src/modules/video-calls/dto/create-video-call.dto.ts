@@ -8,7 +8,7 @@ export class CreateVideoCallDto {
   })
   @IsString()
   @IsNotEmpty()
-  calleeId: string;
+  calleeId!: string;
 
   @ApiProperty({
     description: 'Additional metadata for the video call',

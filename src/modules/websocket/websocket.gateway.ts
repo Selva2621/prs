@@ -57,7 +57,7 @@ interface InvitationResponseData {
 })
 export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   private logger: Logger = new Logger('WebSocketGateway');
   private connectedUsers = new Map<string, string>(); // userId -> socketId
@@ -121,7 +121,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       // Notify user is online
       client.broadcast.emit('user_online', { userId, user });
 
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Connection error for client ${client.id}:`, error.message);
       client.disconnect();
     }
