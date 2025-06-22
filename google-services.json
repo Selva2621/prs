@@ -1,0 +1,29 @@
+{
+    "project_info": {
+        "project_number": "541146573411",
+        "project_id": "ssmmp-aaca5",
+        "storage_bucket": "ssmmp-aaca5.firebasestorage.app"
+    },
+    "client": [
+        {
+            "client_info": {
+                "mobilesdk_app_id": "1:541146573411:android:93326612f47d44ec0c2656",
+                "android_client_info": {
+                    "package_name": "ssmmp.app"
+                }
+            },
+            "oauth_client": [],
+            "api_key": [
+                {
+                    "current_key": "AIzaSyCwDO-WTY930AF9TGcIbBMVPednDBsPEBM"
+                }
+            ],
+            "services": {
+                "appinvite_service": {
+                    "other_platform_oauth_client": []
+                }
+            }
+        }
+    ],
+    "configuration_version": "1"
+}

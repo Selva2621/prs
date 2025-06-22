@@ -49,7 +49,7 @@ interface InvitationResponseData {
       'exp://192.168.1.100:19000',
       'exp://192.168.86.8:8081',
       'http://192.168.86.8:8081',
-      'https://prs-c7e1.onrender.com',
+      'http://localhost:3000',
       '*'
     ],
     credentials: true,
@@ -650,14 +650,22 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       client.emit('error', { message: 'Not authenticated' });
       return;
     }
-    const recipientSocketId = this.connectedUsers.get(data.recipientId);
-    if (recipientSocketId) {
-      this.server.to(recipientSocketId).emit('video_call_offer', {
-        senderId: client.userId,
-        offer: data.offer,
-      });
-    } else {
-      client.emit('error', { message: 'Recipient not online' });
+
+    try {
+      const recipientSocketId = this.connectedUsers.get(data.recipientId);
+      if (recipientSocketId) {
+        this.logger.log(`Video call offer from ${client.userId} to ${data.recipientId}`);
+        this.server.to(recipientSocketId).emit('video_call_offer', {
+          from: client.userId,
+          offer: data.offer,
+        });
+        client.emit('video_call_offer_sent', { recipientId: data.recipientId });
+      } else {
+        client.emit('error', { message: 'Recipient not online' });
+      }
+    } catch (error) {
+      this.logger.error('Error handling video call offer:', error);
+      client.emit('error', { message: 'Failed to send video call offer' });
     }
   }
 
@@ -670,14 +678,22 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       client.emit('error', { message: 'Not authenticated' });
       return;
     }
-    const recipientSocketId = this.connectedUsers.get(data.recipientId);
-    if (recipientSocketId) {
-      this.server.to(recipientSocketId).emit('video_call_answer', {
-        senderId: client.userId,
-        answer: data.answer,
-      });
-    } else {
-      client.emit('error', { message: 'Recipient not online' });
+
+    try {
+      const recipientSocketId = this.connectedUsers.get(data.recipientId);
+      if (recipientSocketId) {
+        this.logger.log(`Video call answer from ${client.userId} to ${data.recipientId}`);
+        this.server.to(recipientSocketId).emit('video_call_answer', {
+          from: client.userId,
+          answer: data.answer,
+        });
+        client.emit('video_call_answer_sent', { recipientId: data.recipientId });
+      } else {
+        client.emit('error', { message: 'Recipient not online' });
+      }
+    } catch (error) {
+      this.logger.error('Error handling video call answer:', error);
+      client.emit('error', { message: 'Failed to send video call answer' });
     }
   }
 
@@ -690,14 +706,48 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       client.emit('error', { message: 'Not authenticated' });
       return;
     }
-    const recipientSocketId = this.connectedUsers.get(data.recipientId);
-    if (recipientSocketId) {
-      this.server.to(recipientSocketId).emit('video_call_ice_candidate', {
-        senderId: client.userId,
-        candidate: data.candidate,
-      });
-    } else {
-      client.emit('error', { message: 'Recipient not online' });
+
+    try {
+      const recipientSocketId = this.connectedUsers.get(data.recipientId);
+      if (recipientSocketId) {
+        this.logger.log(`ICE candidate from ${client.userId} to ${data.recipientId}`);
+        this.server.to(recipientSocketId).emit('video_call_ice_candidate', {
+          from: client.userId,
+          candidate: data.candidate,
+        });
+      } else {
+        client.emit('error', { message: 'Recipient not online' });
+      }
+    } catch (error) {
+      this.logger.error('Error handling ICE candidate:', error);
+      client.emit('error', { message: 'Failed to send ICE candidate' });
+    }
+  }
+
+  @SubscribeMessage('video_call_end')
+  async handleVideoCallEnd(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { recipientId: string },
+  ) {
+    if (!client.userId) {
+      client.emit('error', { message: 'Not authenticated' });
+      return;
+    }
+
+    try {
+      const recipientSocketId = this.connectedUsers.get(data.recipientId);
+      if (recipientSocketId) {
+        this.logger.log(`Video call ended by ${client.userId} for ${data.recipientId}`);
+        this.server.to(recipientSocketId).emit('video_call_end', {
+          from: client.userId,
+        });
+        client.emit('video_call_ended', { recipientId: data.recipientId });
+      } else {
+        client.emit('error', { message: 'Recipient not online' });
+      }
+    } catch (error) {
+      this.logger.error('Error handling video call end:', error);
+      client.emit('error', { message: 'Failed to end video call' });
     }
   }
 }

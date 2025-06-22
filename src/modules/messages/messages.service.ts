@@ -4,6 +4,7 @@ import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { MessageType, MessageStatus } from '@prisma/client';
 import { ChatGateway } from '../websocket/websocket.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class MessagesService {
@@ -11,6 +12,7 @@ export class MessagesService {
     private prisma: PrismaService,
     @Inject(forwardRef(() => ChatGateway))
     private chatGateway: ChatGateway,
+    private notificationsService: NotificationsService,
   ) { }
 
   async create(createMessageDto: CreateMessageDto, senderId: string) {
@@ -52,6 +54,18 @@ export class MessagesService {
       this.chatGateway.emitToUser(createMessageDto.recipientId, 'new_message', message);
     } catch (error) {
       console.error('Failed to emit WebSocket event:', error);
+    }
+
+    // Send push notification to recipient
+    try {
+      await this.notificationsService.sendMessageNotification(
+        createMessageDto.recipientId,
+        message.sender.fullName || message.sender.email,
+        message.content,
+        message.id,
+      );
+    } catch (error) {
+      console.error('Failed to send push notification:', error);
     }
 
     return message;

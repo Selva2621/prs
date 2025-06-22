@@ -84,6 +84,17 @@ enum ChatInvitationStatus {
   EXPIRED
 }
 
+enum NotificationType {
+  MESSAGE
+  VIDEO_CALL
+  CALL_ACCEPTED
+  CALL_DECLINED
+  CALL_MISSED
+  PROPOSAL
+  PHOTO_UPLOAD
+  SYSTEM
+}
+
 // Models
 model User {
   id          String    @id @default(uuid()) @db.Uuid
@@ -98,8 +109,15 @@ model User {
   lastSeen    DateTime? @map("last_seen") @db.Timestamp(6)
   preferences Json?     @db.JsonB
   profileData Json?     @map("profile_data") @db.JsonB
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  // Push Notification Fields
+  fcmToken             String? @map("fcm_token")
+  deviceType           String? @map("device_type") // "android" | "ios" | "web"
+  notificationSettings Json?   @map("notification_settings") @db.JsonB
+  isOnline             Boolean @default(false) @map("is_online")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
 
   // Relations
   sentMessages        Message[]        @relation("SentMessages")
@@ -110,6 +128,7 @@ model User {
   proposals           Proposal[]
   sentInvitations     ChatInvitation[] @relation("SentInvitations")
   receivedInvitations ChatInvitation[] @relation("ReceivedInvitations")
+  notifications       Notification[]   @relation("UserNotifications")
 
   @@map("users")
 }
@@ -227,4 +246,26 @@ model ChatInvitation {
   recipientId String @map("recipient_id") @db.Uuid
 
   @@map("chat_invitations")
+}
+
+model Notification {
+  id         String           @id @default(uuid()) @db.Uuid
+  type       NotificationType
+  title      String
+  body       String           @db.Text
+  data       Json?            @db.JsonB
+  isRead     Boolean          @default(false) @map("is_read")
+  isSent     Boolean          @default(false) @map("is_sent")
+  sentAt     DateTime?        @map("sent_at") @db.Timestamp(6)
+  readAt     DateTime?        @map("read_at") @db.Timestamp(6)
+  error      String?          @db.Text
+  retryCount Int              @default(0) @map("retry_count")
+  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt  DateTime         @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  // Relations
+  user   User   @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  userId String @map("user_id") @db.Uuid
+
+  @@map("notifications")
 }

@@ -3,10 +3,14 @@ import { PrismaService } from '../../config/prisma.service';
 import { CreateVideoCallDto } from './dto/create-video-call.dto';
 import { UpdateVideoCallDto } from './dto/update-video-call.dto';
 import { CallStatus } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class VideoCallsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) { }
 
   async create(createVideoCallDto: CreateVideoCallDto, callerId: string) {
     // Check if callee exists
@@ -66,6 +70,17 @@ export class VideoCallsService {
         },
       },
     });
+
+    // Send push notification to callee with ringtone support
+    try {
+      await this.notificationsService.sendVideoCallNotification(
+        createVideoCallDto.calleeId,
+        videoCall.caller.fullName || videoCall.caller.email,
+        videoCall.id,
+      );
+    } catch (error) {
+      console.error('Failed to send video call notification:', error);
+    }
 
     return videoCall;
   }
@@ -219,6 +234,17 @@ export class VideoCallsService {
       },
     });
 
+    // Send push notification to caller that call was accepted
+    try {
+      await this.notificationsService.sendCallAcceptedNotification(
+        videoCall.callerId,
+        updatedCall.callee.fullName || updatedCall.callee.email,
+        videoCall.id,
+      );
+    } catch (error) {
+      console.error('Failed to send call accepted notification:', error);
+    }
+
     return updatedCall;
   }
 
@@ -242,6 +268,17 @@ export class VideoCallsService {
         endedAt: new Date(),
       },
     });
+
+    // Send push notification to caller that call was declined
+    try {
+      await this.notificationsService.sendCallDeclinedNotification(
+        videoCall.callerId,
+        videoCall.callee.fullName || videoCall.callee.email,
+        videoCall.id,
+      );
+    } catch (error) {
+      console.error('Failed to send call declined notification:', error);
+    }
 
     return updatedCall;
   }

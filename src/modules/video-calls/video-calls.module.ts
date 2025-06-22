@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
-import { PrismaService } from '../../config/prisma.service';
-import { VideoCallsController } from './video-calls.controller';
 import { VideoCallsService } from './video-calls.service';
+import { VideoCallsController } from './video-calls.controller';
+import { PrismaService } from '../../config/prisma.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [],
+  imports: [NotificationsModule],
   controllers: [VideoCallsController],
   providers: [VideoCallsService, PrismaService],
-  exports: [VideoCallsService, PrismaService],
+  exports: [VideoCallsService],
 })
 export class VideoCallsModule { }
