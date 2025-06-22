@@ -80,31 +80,44 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
       // Extract token from handshake auth
       const token = client.handshake.auth?.token || client.handshake.headers?.authorization?.replace('Bearer ', '');
+      this.logger.log(`Received token (first 10 chars): ${token ? token.substring(0, 10) + '...' : 'none'}`);
 
       if (!token) {
         this.logger.warn(`Client ${client.id} disconnected: No token provided`);
+        client.emit('error', { message: 'No token provided' });
         client.disconnect();
         return;
       }
 
       // Verify JWT token
-      const payload = this.jwtService.verify(token);
+      let payload;
+      try {
+        payload = this.jwtService.verify(token);
+      } catch (err) {
+        this.logger.warn(`Client ${client.id} disconnected: Invalid token (${err.message})`);
+        client.emit('error', { message: 'Invalid token', details: err.message });
+        client.disconnect();
+        return;
+      }
       const userId = payload.sub;
 
       if (!userId) {
-        this.logger.warn(`Client ${client.id} disconnected: Invalid token`);
+        this.logger.warn(`Client ${client.id} disconnected: Invalid token payload`);
+        client.emit('error', { message: 'Invalid token payload' });
         client.disconnect();
         return;
       }
 
       // Get user from database
-      const user = await this.prisma.user.findUnique({
+      const user = await this.prisma.user.update({
         where: { id: userId },
+        data: { isActive: true, lastSeen: new Date() },
         select: { id: true, email: true, fullName: true, avatarUrl: true },
       });
 
       if (!user) {
         this.logger.warn(`Client ${client.id} disconnected: User not found`);
+        client.emit('error', { message: 'User not found' });
         client.disconnect();
         return;
       }
@@ -112,6 +125,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       // Store user info in socket
       client.userId = userId;
       client.user = user;
+
+      this.logger.log(`Stored userId ${userId} in socket ${client.id}`);
 
       // Track connected user
       this.connectedUsers.set(userId, client.id);
@@ -122,8 +137,17 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       // Notify user is online
       client.broadcast.emit('user_online', { userId, user });
 
+      // Broadcast updated active users list
+      const activeUserIds = Array.from(this.connectedUsers.keys());
+      const activeUsers = await this.prisma.user.findMany({
+        where: { id: { in: activeUserIds }, isActive: true },
+        select: { id: true, email: true, fullName: true, avatarUrl: true, lastSeen: true },
+      });
+      this.server.emit('active_users_updated', { activeUsers });
+
     } catch (error: any) {
       this.logger.error(`Connection error for client ${client.id}:`, error.message);
+      client.emit('error', { message: error.message });
       client.disconnect();
     }
   }
@@ -138,8 +162,26 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       // Clean up user rooms
       this.userRooms.delete(client.userId);
 
+      // Set user as inactive in DB
+      this.prisma.user.update({
+        where: { id: client.userId },
+        data: { isActive: false, lastSeen: new Date() },
+      }).catch((err) => {
+        this.logger.error(`Failed to update user status on disconnect:`, err.message);
+      });
+
       // Notify user is offline
       client.broadcast.emit('user_offline', { userId: client.userId });
+
+      // Broadcast updated active users list
+      (async () => {
+        const activeUserIds = Array.from(this.connectedUsers.keys());
+        const activeUsers = await this.prisma.user.findMany({
+          where: { id: { in: activeUserIds }, isActive: true },
+          select: { id: true, email: true, fullName: true, avatarUrl: true, lastSeen: true },
+        });
+        this.server.emit('active_users_updated', { activeUsers });
+      })();
     }
   }
 
@@ -394,7 +436,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   @SubscribeMessage('get_active_users')
   async handleGetActiveUsers(@ConnectedSocket() client: AuthenticatedSocket) {
+    this.logger.log(`get_active_users called by socket ${client.id}, userId: ${client.userId}`);
+
     if (!client.userId) {
+      this.logger.warn(`Socket ${client.id} not authenticated - no userId found`);
       client.emit('error', { message: 'Not authenticated' });
       return;
     }
@@ -592,6 +637,67 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     } catch (error) {
       this.logger.error('Error rejecting chat invitation:', error);
       client.emit('error', { message: 'Failed to reject chat invitation' });
+    }
+  }
+
+  // --- Video Call Signaling Events ---
+  @SubscribeMessage('video_call_offer')
+  async handleVideoCallOffer(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { recipientId: string; offer: any },
+  ) {
+    if (!client.userId) {
+      client.emit('error', { message: 'Not authenticated' });
+      return;
+    }
+    const recipientSocketId = this.connectedUsers.get(data.recipientId);
+    if (recipientSocketId) {
+      this.server.to(recipientSocketId).emit('video_call_offer', {
+        senderId: client.userId,
+        offer: data.offer,
+      });
+    } else {
+      client.emit('error', { message: 'Recipient not online' });
+    }
+  }
+
+  @SubscribeMessage('video_call_answer')
+  async handleVideoCallAnswer(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { recipientId: string; answer: any },
+  ) {
+    if (!client.userId) {
+      client.emit('error', { message: 'Not authenticated' });
+      return;
+    }
+    const recipientSocketId = this.connectedUsers.get(data.recipientId);
+    if (recipientSocketId) {
+      this.server.to(recipientSocketId).emit('video_call_answer', {
+        senderId: client.userId,
+        answer: data.answer,
+      });
+    } else {
+      client.emit('error', { message: 'Recipient not online' });
+    }
+  }
+
+  @SubscribeMessage('video_call_ice_candidate')
+  async handleVideoCallIceCandidate(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { recipientId: string; candidate: any },
+  ) {
+    if (!client.userId) {
+      client.emit('error', { message: 'Not authenticated' });
+      return;
+    }
+    const recipientSocketId = this.connectedUsers.get(data.recipientId);
+    if (recipientSocketId) {
+      this.server.to(recipientSocketId).emit('video_call_ice_candidate', {
+        senderId: client.userId,
+        candidate: data.candidate,
+      });
+    } else {
+      client.emit('error', { message: 'Recipient not online' });
     }
   }
 }
