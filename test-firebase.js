@@ -13,12 +13,24 @@ async function testFirebase() {
         } else {
             console.log('Initializing Firebase...');
 
+            // Get private key and fix formatting
+            const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+            if (!privateKey) {
+                throw new Error('FIREBASE_PRIVATE_KEY environment variable is not set');
+            }
+
+            // Remove line continuation backslashes and ensure proper PEM format
+            const formattedPrivateKey = privateKey
+                .replace(/\\\n/g, '\n')  // Remove backslash + newline combinations
+                .replace(/\\/g, '')      // Remove any remaining backslashes
+                .trim();                 // Remove extra whitespace
+
             // Initialize Firebase Admin SDK with environment variables
             const app = admin.initializeApp({
                 credential: admin.credential.cert({
                     projectId: process.env.FIREBASE_PROJECT_ID,
                     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-                    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+                    privateKey: formattedPrivateKey,
                 }),
                 projectId: process.env.FIREBASE_PROJECT_ID,
             });
